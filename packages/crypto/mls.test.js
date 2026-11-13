@@ -2,9 +2,11 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import {
   createApplicationMessage, createCommit, createGroup, defaultCapabilities,
-  defaultLifetime, emptyPskIndex, generateKeyPackage, getCiphersuiteFromName,
+  decodeGroupState, defaultLifetime, emptyPskIndex, encodeGroupState, generateKeyPackage, getCiphersuiteFromName,
   getCiphersuiteImpl, joinGroup, processPrivateMessage, zeroOutUint8Array,
 } from 'ts-mls';
+
+import { login, registerAccount, wrappingKey } from './opaque-fixture.js';
 
 const encoder = new TextEncoder();
 
@@ -15,7 +17,7 @@ function verifyDevice(keyPackage, expectedId, trustedSignatureKey) {
   assert.deepEqual(signaturePublicKey, trustedSignatureKey, 'Изменился ключ устройства');
 }
 
-test('MLS delivers group messages and detects replacement of an independently verified device key', async () => {
+test('MLS detects device key replacement and restores unread messages from a sealed checkpoint', async () => {
   const suite = getCiphersuiteFromName('MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519');
   const impl = await getCiphersuiteImpl(suite);
   const device = (id) => generateKeyPackage(
@@ -44,12 +46,39 @@ test('MLS delivers group messages and detects replacement of an independently ve
     commit.welcome, bob.publicPackage, bob.privatePackage, emptyPskIndex,
     impl, commit.newState.ratchetTree,
   );
-  const plaintext = encoder.encode('Проверка группового сообщения');
-  const outgoing = await createApplicationMessage(commit.newState, plaintext, impl);
-  outgoing.consumed.forEach(zeroOutUint8Array);
-  const incoming = await processPrivateMessage(
-    bobGroup, outgoing.privateMessage, emptyPskIndex, impl,
+  const accountId = 'bob';
+  const password = crypto.randomUUID();
+  const { exportKey, ...serverAccount } = await registerAccount(accountId, password);
+  const salt = crypto.getRandomValues(new Uint8Array(32));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const params = { name: 'AES-GCM', iv, additionalData: encoder.encode(accountId) };
+  const checkpoint = encodeGroupState(bobGroup);
+  const archive = await crypto.subtle.encrypt(params, await wrappingKey(exportKey, salt), checkpoint);
+  checkpoint.fill(0);
+
+  // Bob is offline while Alice sends both messages.
+  const first = await createApplicationMessage(commit.newState, encoder.encode('first'), impl);
+  first.consumed.forEach(zeroOutUint8Array);
+  const second = await createApplicationMessage(first.newState, encoder.encode('second'), impl);
+  second.consumed.forEach(zeroOutUint8Array);
+
+  const freshLogin = login({ ...serverAccount, userIdentifier: accountId }, password);
+  assert.ok(freshLogin);
+  const restoredBytes = new Uint8Array(await crypto.subtle.decrypt(
+    params, await wrappingKey(freshLogin.exportKey, salt), archive,
+  ));
+  const decoded = decodeGroupState(restoredBytes, 0);
+  assert.ok(decoded);
+  assert.equal(decoded[1], restoredBytes.length);
+  const restoredGroup = { ...decoded[0], clientConfig: bobGroup.clientConfig };
+  const firstReceived = await processPrivateMessage(
+    restoredGroup, first.privateMessage, emptyPskIndex, impl,
   );
-  incoming.consumed.forEach(zeroOutUint8Array);
-  assert.deepEqual(incoming.message, plaintext);
+  firstReceived.consumed.forEach(zeroOutUint8Array);
+  assert.deepEqual(firstReceived.message, encoder.encode('first'));
+  const secondReceived = await processPrivateMessage(
+    firstReceived.newState, second.privateMessage, emptyPskIndex, impl,
+  );
+  secondReceived.consumed.forEach(zeroOutUint8Array);
+  assert.deepEqual(secondReceived.message, encoder.encode('second'));
 });
