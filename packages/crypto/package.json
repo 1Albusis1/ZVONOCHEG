@@ -1,0 +1,11 @@
+{
+  "name": "@zvonocheg/crypto",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:opaque": "node --test opaque.test.js"
+  },
+  "dependencies": {
+    "@serenity-kit/opaque": "1.1.0"
+  }
+}
