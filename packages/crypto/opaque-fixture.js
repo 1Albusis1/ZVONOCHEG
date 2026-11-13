@@ -1,4 +1,3 @@
-import { strict as assert } from 'node:assert';
 import * as opaque from '@serenity-kit/opaque';
 
 const context = new TextEncoder();
@@ -6,7 +5,7 @@ const algorithm = 'AES-GCM';
 
 export async function wrappingKey(exportKey, salt) {
   const material = await crypto.subtle.importKey(
-    'raw', Buffer.from(exportKey, 'base64url'),
+    'raw', Uint8Array.from(atob(exportKey.replace(/-/g, '+').replace(/_/g, '/')), (byte) => byte.charCodeAt(0)),
     'HKDF', false, ['deriveKey'],
   );
   return crypto.subtle.deriveKey(
@@ -15,9 +14,9 @@ export async function wrappingKey(exportKey, salt) {
   );
 }
 
-export async function registerAccount(userIdentifier, password) {
+export async function registerAccount(userIdentifier, password, existingSetup) {
   await opaque.ready;
-  const serverSetup = opaque.server.createSetup();
+  const serverSetup = existingSetup ?? opaque.server.createSetup();
   const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password });
   const { registrationResponse } = opaque.server.createRegistrationResponse({
     serverSetup, userIdentifier, registrationRequest,
@@ -39,6 +38,6 @@ export function login({ serverSetup, userIdentifier, registrationRecord }, candi
   const server = opaque.server.finishLogin({
     serverLoginState, finishLoginRequest: result.finishLoginRequest,
   });
-  assert.equal(server.sessionKey, result.sessionKey);
+  if (server.sessionKey !== result.sessionKey) throw new Error('OPAQUE session key mismatch');
   return result;
 }

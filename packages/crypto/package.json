@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "node --test",
     "check:opaque": "node --test opaque.test.js"
   },
   "dependencies": {
@@ -10,5 +11,8 @@
     "@noble/hashes": "2.3.0",
     "@serenity-kit/opaque": "1.1.0",
     "ts-mls": "1.6.4"
+  },
+  "devDependencies": {
+    "electron": "45.3.2"
   }
 }
