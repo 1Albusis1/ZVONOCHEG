@@ -1,0 +1,16 @@
+{
+  "name": "zvonocheg",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @zvonocheg/api",
+    "dev:web": "npm run dev -w @zvonocheg/web",
+    "build": "npm run build -w @zvonocheg/web && npm run check -w @zvonocheg/api"
+  }
+}
