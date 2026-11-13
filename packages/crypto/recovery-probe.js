@@ -83,4 +83,18 @@ export async function verifyRecovery(assert) {
   );
   secondReceived.consumed.forEach(zeroOutUint8Array);
   assert.deepEqual(secondReceived.message, encoder.encode('second'));
+  const removal = await createCommit({ state: second.newState, cipherSuite: impl }, {
+    extraProposals: [{ proposalType: 'remove', remove: { removed: 1 } }],
+  });
+  removal.consumed.forEach(zeroOutUint8Array);
+  const future = await createApplicationMessage(removal.newState, encoder.encode('after removal'), impl);
+  future.consumed.forEach(zeroOutUint8Array);
+  let decryptedAfterRemoval = false;
+  try {
+    const result = await processPrivateMessage(secondReceived.newState, future.privateMessage, emptyPskIndex, impl);
+    decryptedAfterRemoval = result.kind !== 'newState';
+  } catch {
+    // The revoked device has no secrets for the new epoch.
+  }
+  assert.equal(decryptedAfterRemoval, false);
 }
