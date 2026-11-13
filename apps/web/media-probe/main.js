@@ -39,7 +39,9 @@ form.addEventListener('submit', async (event) => {
   form.elements.token.value = '';
   status.textContent = 'Подключение…';
   room.on(RoomEvent.EncryptionError, () => void close(session, 'Ошибка E2EE. Соединение закрыто.'));
-  room.on(RoomEvent.Disconnected, () => void close(session, 'Отключено'));
+  room.on(RoomEvent.Disconnected, (reason) => {
+    if (session.connected) void close(session, `Соединение прервано (код ${reason ?? 'не указан'})`);
+  });
   room.on(RoomEvent.TrackSubscribed, (track) => {
     if (active === session && track.kind === Track.Kind.Audio) {
       const audio = track.attach();
@@ -56,11 +58,14 @@ form.addEventListener('submit', async (event) => {
     });
     if (active !== session) return;
     if (!room.isE2EEEnabled) throw new Error('E2EE unavailable');
+    session.connected = true;
     mic.disabled = false;
     leave.disabled = false;
     status.textContent = 'Подключено с E2EE';
-  } catch {
-    await close(session, 'Подключение с E2EE не удалось');
+  } catch (error) {
+    const code = typeof error?.status === 'number' ? ` HTTP ${error.status}` : '';
+    const reason = typeof error?.reason === 'number' ? ` (код LiveKit ${error.reason})` : '';
+    await close(session, `Подключение с E2EE не удалось.${code}${reason} Проверьте адрес и срок действия токена.`);
   }
 });
 
