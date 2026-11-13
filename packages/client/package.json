@@ -1,0 +1,9 @@
+{
+  "name": "@zvonocheg/client",
+  "private": true,
+  "type": "module",
+  "exports": "./src/App.jsx",
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}
