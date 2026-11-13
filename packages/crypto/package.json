@@ -6,6 +6,9 @@
     "check:opaque": "node --test opaque.test.js"
   },
   "dependencies": {
-    "@serenity-kit/opaque": "1.1.0"
+    "@noble/curves": "2.0.1",
+    "@noble/hashes": "2.3.0",
+    "@serenity-kit/opaque": "1.1.0",
+    "ts-mls": "1.6.4"
   }
 }
