@@ -79,8 +79,19 @@ mic.addEventListener('click', async () => {
     if (active !== session) return;
     mic.textContent = participant.isMicrophoneEnabled ? 'Выключить микрофон' : 'Включить микрофон';
     mic.disabled = false;
-  } catch {
-    await close(session, 'Не удалось включить или выключить микрофон');
+    status.textContent = 'Подключено с E2EE';
+  } catch (error) {
+    if (active !== session) return;
+    const messages = {
+      NotAllowedError: 'Разрешите доступ к микрофону в браузере и Windows.',
+      NotFoundError: 'Подключите микрофон и проверьте устройство ввода.',
+      NotReadableError: 'Проверьте, доступен ли микрофон и работает ли он в Windows.',
+    };
+    const detail = Object.hasOwn(messages, error?.name)
+      ? messages[error.name]
+      : 'Проверьте устройство ввода и право Can publish в токене.';
+    status.textContent = `Не удалось переключить микрофон. ${detail}`;
+    mic.disabled = false;
   }
 });
 leave.addEventListener('click', () => {
