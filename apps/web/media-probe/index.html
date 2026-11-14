@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<title>Проверка LiveKit</title>
+<h1>Проверка LiveKit E2EE</h1>
+<form>
+  <p><label>Адрес LiveKit <input name="endpoint" required value="ws://127.0.0.1:7880"></label></p>
+  <p><label>Токен участника <input name="token" type="password" autocomplete="off" required></label></p>
+  <p><label>Ключ медиа <input name="key" type="password" autocomplete="off" required></label></p>
+  <p><label><input name="relay" type="checkbox"> Только TURN</label></p>
+  <button type="submit">Подключиться</button>
+</form>
+<button id="mic" disabled>Включить микрофон</button>
+<button id="leave" disabled>Отключиться</button>
+<p id="status" role="status"></p>
+<div id="tracks"></div>
+<script type="module" src="./main.js"></script>
+</html>

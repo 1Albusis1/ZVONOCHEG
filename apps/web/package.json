@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@zvonocheg/client": "*",
+    "livekit-client": "2.24.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
